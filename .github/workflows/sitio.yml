@@ -1,0 +1,78 @@
+name: 
+Sitio_web_deploy
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Permite ejecutar manualmente
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Fetch full history for better git info
+    
+    - name: 🔧 Setup Node.js (si fuera necesario)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: 📊 Display Build Information
+      run: |
+        echo "🚀 Iniciando deploy con token personalizado"
+        echo "📂 Repositorio: ${{ github.repository }}"
+        echo "🌟 Commit: ${{ github.sha }}"
+        echo "👤 Actor: ${{ github.actor }}"
+        echo "📅 Fecha: $(date)"
+        echo "🔑 Usando token personalizado (no GITHUB_TOKEN)"
+    
+    - name: 🏗️ Build Process (Preparación de archivos)
+      run: |
+        echo "Preparando archivos para despliegue..."
+        
+        # Crear información de build
+        echo "Build ID: GHA-$(date +%Y%m%d-%H%M%S)" > build-info.txt
+        echo "Commit: ${{ github.sha }}" >> build-info.txt
+        echo "Branch: ${{ github.ref_name }}" >> build-info.txt
+        echo "Actor: ${{ github.actor }}" >> build-info.txt
+        echo "Fecha: $(date)" >> build-info.txt
+        
+        # Mostrar estructura de archivos
+        echo "📁 Estructura de archivos:"
+        ls -la
+        
+        # Validar archivos HTML
+        if [ -f "index.html" ]; then
+          echo "✅ index.html encontrado"
+        else
+          echo "❌ index.html no encontrado"
+          exit 1
+        fi
+    
+    - name: 🚀 Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        personal_token: ${{ secrets.GH_PAT }}  # ¡Aquí usamos nuestro token personalizado!
+        publish_dir: ./
+        publish_branch: gh-pages
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: |
+          🚀 Deploy: ${{ github.event.head_commit.message }}
+          
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref_name }}
+          - Actor: ${{ github.actor }}
+          - Timestamp: ${{ github.event.head_commit.timestamp }}
+    
+    - name: 📋 Post-Deploy Information
+      run: |
+        echo "✅ Deploy completado exitosamente"
+        echo "🌐 URL del sitio: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        echo "📊 Logs disponibles en: https://github.com/${{ github.repository }}/actions"
+        echo "🔑 Token personalizado utilizado correctamente"
